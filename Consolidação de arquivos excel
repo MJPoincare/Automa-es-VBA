@@ -1,0 +1,89 @@
+Sub ConsolidateExcelFilesWithCourseColumn_Model()
+
+    Dim FolderPath As String
+    Dim FileName As String
+    Dim CourseName As String
+    Dim wsMaster As Worksheet
+    Dim LastRowMaster As Long
+    Dim TotalFiles As Integer
+    Dim SourceWorkbook As Workbook
+    Dim SourceSheet As Worksheet
+    Dim LastRowSource As Long
+    Dim SourceRange As Range
+    
+    ' Desativa alertas para evitar a mensagem da área de transferência
+    Application.DisplayAlerts = False
+    
+    ' Defina o caminho da pasta
+    FolderPath = "C:\Users\caminho"
+    
+    ' Verifique se o caminho da pasta termina com uma barra invertida
+    If Right(FolderPath, 1) <> "\" Then FolderPath = FolderPath & "\"
+    
+    ' Defina a planilha mestre onde os dados serão consolidados
+    Set wsMaster = ThisWorkbook.Sheets(1)
+    wsMaster.Name = "Dados Consolidados"
+    
+    ' Defina os cabeçalhos para a planilha mestre com base no modelo, incluindo a nova coluna "Curso"
+    wsMaster.Range("A1:M1").Value = Array("Coluna1", "Coluna2", "Coluna3", "Coluna4", Coluna5, Coluna6, Coluna7")
+    
+    LastRowMaster = 2 ' Inicie a colagem dos dados a partir da linha 2 (abaixo dos cabeçalhos)
+    TotalFiles = 0 ' Inicialize o contador de arquivos
+    
+    ' Loop para abrir todos os arquivos Excel no diretório especificado
+    FileName = Dir(FolderPath & "*.xlsx")
+    
+    If FileName = "" Then
+        MsgBox "Nenhum arquivo Excel encontrado na pasta.", vbExclamation
+        Application.DisplayAlerts = True ' Reativa os alertas
+        Exit Sub
+    End If
+    
+    Do While FileName <> ""
+        TotalFiles = TotalFiles + 1 ' Contador de arquivos processados
+        
+        ' Extraia o nome do curso a partir do nome do arquivo (sem extensão)
+        CourseName = Left(FileName, Len(FileName) - 5) ' Remove ".xlsx" do nome
+        
+        ' Abra o arquivo Excel como uma pasta de trabalho
+        Set SourceWorkbook = Workbooks.Open(FolderPath & FileName)
+        Set SourceSheet = SourceWorkbook.Sheets(1) ' Pressume-se que os dados estão na primeira planilha
+        
+        ' Encontre a última linha usada na planilha de origem
+        LastRowSource = SourceSheet.Cells(SourceSheet.Rows.Count, 1).End(xlUp).Row
+        
+        ' Defina o intervalo de dados da planilha de origem, ignorando a primeira linha (cabeçalhos) e incluindo colunas A até K
+        Set SourceRange = SourceSheet.Range("A2:K" & LastRowSource)
+        
+        ' Copie os dados da planilha de origem
+        SourceRange.Copy
+        
+        ' Cole os dados na planilha mestre
+        wsMaster.Cells(LastRowMaster, 1).PasteSpecial xlPasteValues
+        
+        ' Preencher a nova coluna "Curso" com o nome do curso em todas as linhas copiadas
+        wsMaster.Range("M" & LastRowMaster & ":M" & (LastRowMaster + SourceRange.Rows.Count - 1)).Value = CourseName
+        
+        ' Atualize o contador de linhas da planilha mestre
+        LastRowMaster = LastRowMaster + SourceRange.Rows.Count
+        
+        ' Feche o arquivo Excel sem salvar alterações
+        SourceWorkbook.Close False
+        
+        ' Pegue o próximo arquivo Excel
+        FileName = Dir
+    Loop
+
+    ' Desativar o modo de cópia e restaurar os alertas
+    Application.CutCopyMode = False
+    Application.DisplayAlerts = True
+    
+    ' Auto-ajuste das colunas na planilha mestre
+    wsMaster.Columns("A:M").AutoFit
+    
+    ' Exibir uma mensagem de conclusão
+    MsgBox "Consolidação concluída. " & TotalFiles & " arquivos foram processados."
+
+End Sub
+
+
